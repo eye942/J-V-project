@@ -1,13 +1,7 @@
-# -*- coding: utf-8 -*-
-"""
-Spyder Editor
-
-This is a temporary script file.
-"""
-
-def load():
-    with open('C:/Users/Eric/Dropbox/J-V/test/opv_Friday_d1  151014-171247.txt', 'r') as infile:
-
+def loadList(directory = "D:/J-V/test/", file_name):
+    filePath = directory + file_name
+    
+    with open(filePath, 'r') as infile:
         data = infile.read()  # Read the contents of the file into memory.
 
     # Return a list of the lines, breaking at line boundaries.
@@ -24,12 +18,37 @@ def splitTab(dataList):
                 x = [float(line[:tab]), float(line[tab+1:])]
                 stringList.append(x)
             except:
-                pass
+                print "Error: number problems"
             
         else:
-            pass
+            
     return stringList
 
+def parseFields(line):
+    from dateutil.parser import parse
+
+    
+    index = line.find(":")
+    if line[:index] is 'Device Name:':
+        x = ['Device Name', line[index+2:]]
+    elif line[:index] is 'Description':
+        x = ['Description', line[index+2:]]
+    elif line[:index] is 'Area':
+        x = ['Area', line[index+2:]]
+    elif line[:index] is 'Block':
+        x = ['Block', line[index+2:]]
+    elif line[:index] is 'Carrier':
+        x = ['Carrier', line[index+2:]]
+    elif line[:index] is 'Device':
+        x = ['Device', line[index+2:]]    
+    elif line[:index] is 'LB device':
+        x = ['LB device', line[index+2:]]
+    elif line.find('Measured on') > -1:
+        x = ['Test Time', parse(line[14:])]
+    elif 
+            
+            x = ['Description', line[index+2:]]
+    return x
 #def splitString(string, index):
  #   try:
   #      return [float(string[:index]), float(string[index+1:])]
