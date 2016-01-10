@@ -6,7 +6,9 @@ def loadList(directory = "D:/J-V/test/", file_name):
 
     # Return a list of the lines, breaking at line boundaries.
     return data.splitlines()
-    
+class Data:
+    def __init__(self, directory, fileName):
+        self.array = loadList(directory, file_name)
     
 def splitTab(dataList):
     
