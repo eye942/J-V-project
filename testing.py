@@ -1,14 +1,18 @@
-def loadList(directory = "D:/J-V/test/", file_name):
-    filePath = directory + file_name
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Jan 10 12:02:48 2016
+
+@author: Eric
+"""
+
+def loadList(directory, file_name):
+    filePath = directory + "/" + file_name
     
     with open(filePath, 'r') as infile:
         data = infile.read()  # Read the contents of the file into memory.
 
     # Return a list of the lines, breaking at line boundaries.
     return data.splitlines()
-class Data:
-    def __init__(self, directory, fileName):
-        self.array = loadList(directory, file_name)
     
 def splitTab(dataList):
     
@@ -17,40 +21,59 @@ def splitTab(dataList):
         if line.find("\t") > -1:
             tab = line.find("\t")
             try:
-                x = [float(line[:tab]), float(line[tab+1:])]
-                stringList.append(x)
+                if float(line[:tab]) != None:               
+                    x = [float(line[:tab]), float(line[tab+1:])]
+                    stringList.append(x)
             except:
-                print "Error: number problems"
-            
-        else:
-            
+                pass
     return stringList
 
-def parseFields(line):
-    from dateutil.parser import parse
-
+class Data(object):
+    def __init__(self, directory = 'C:/Users/Eric/Dropbox/J-V/test', file_name = 'opv_Friday_d1  151014-170349.txt' ):
+        self.rawList = loadList(directory, file_name)
+        self.numList = splitTab(self.rawList)
+        self.parsedList = []
     
-    index = line.find(":")
-    if line[:index] is 'Device Name:':
-        x = ['Device Name', line[index+2:]]
-    elif line[:index] is 'Description':
-        x = ['Description', line[index+2:]]
-    elif line[:index] is 'Area':
-        x = ['Area', line[index+2:]]
-    elif line[:index] is 'Block':
-        x = ['Block', line[index+2:]]
-    elif line[:index] is 'Carrier':
-        x = ['Carrier', line[index+2:]]
-    elif line[:index] is 'Device':
-        x = ['Device', line[index+2:]]    
-    elif line[:index] is 'LB device':
-        x = ['LB device', line[index+2:]]
-    elif line.find('Measured on') > -1:
-        x = ['Test Time', parse(line[14:])]
-    elif 
-            
-            x = ['Description', line[index+2:]]
-    return x
+
+
+def parseFields(Data):
+    from dateutil.parser import parse
+    import string
+
+    for line in Data.rawList:
+        index = line.find(":")
+        if line.find("\t") >= 0:
+            pass
+        elif line[:index] is 'Device Name:':
+            Data.parsedList.append(['Device Name', line[index+2:]])
+        elif line[:index] is 'Description':
+            Data.parsedList.append(['Description', line[index+2:]])
+        elif line[:index] is 'Area':
+            Data.parsedList.append(['Area', line[index+2:]])
+        elif line[:index] is 'Block':
+            Data.parsedList.append(['Block', line[index+2:]])
+        elif line[:index] is 'Carrier':
+            Data.parsedList.append(['Carrier', line[index+2:]])
+        elif line[:index] is 'Device':
+            Data.parsedList.append(['Device', line[index+2:]])
+        elif line[:index] is 'LB device':
+            Data.parsedList.append(['LB device', line[index+2:]])
+        elif line.find('Measured on') > -1:
+            Data.parsedList.append(['Test Time', parse(line[14:])])
+        elif line.find("### Sensor Readings") != -1:
+            while index > -1:
+                index = line.find(":")
+                for x in string.uppercase:
+                    try:
+                        firstCap = line[:index].rFind(x)
+                        break
+                y = [firstCap, str()]
+                line = line[index:]
+                return y
+                
+        else:
+            pass
+
 #def splitString(string, index):
  #   try:
   #      return [float(string[:index]), float(string[index+1:])]
@@ -60,7 +83,7 @@ def parseFields(line):
 def plot(tupleList):
     import numpy as np
     import matplotlib.pyplot as plt
-
+    from matplotlib.ticker import NullFormatter
 
     #x = np.arange(0, 5, 0.1);
     #y = np.sin(x)
@@ -71,8 +94,7 @@ def plot(tupleList):
     #print x_val
     #plt.plot(x_val,y_val)
     #plt.show()
-    import matplotlib.pyplot as plt
-    from matplotlib.ticker import NullFormatter
+
     
     # the random data
    
