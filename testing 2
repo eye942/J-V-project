@@ -1,0 +1,153 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Jan 11 09:23:09 2016
+
+@author: jye
+"""
+
+def loadList(directory, file_name):
+    filePath = directory + "/" + file_name
+    
+    with open(filePath, 'r') as infile:
+        data = infile.read()  # Read the contents of the file into memory.
+
+    # Return a list of the lines, breaking at line boundaries.
+    return data.splitlines()
+    
+def splitTab(dataList):
+    
+    stringList = []
+    for line in dataList:
+        if line.find("\t") > -1:
+            tab = line.find("\t")
+            try:
+                if float(line[:tab]) != None:               
+                    x = [float(line[:tab]), float(line[tab+1:])]
+                    stringList.append(x)
+            except:
+                pass
+    return stringList
+
+class Data(object):
+    def __init__(self, directory = 'C:/Users/Eric/Dropbox/J-V/test', file_name = 'opv_Friday_d1  151014-170349.txt' ):
+        self.file_name = file_name
+        self.directory = directory
+        self.rawList = loadList(directory, file_name)
+        self.numList = splitTab(self.rawList)
+        self.parsedList = []
+    
+    def plot(self, write = 'n'):
+        #import Image
+
+        import matplotlib.pyplot as plt
+        import numpy as np
+        
+        x_val = [x[0] for x in self.numList]
+        y_val = [x[1] for x in self.numList]
+        
+        # definitions for the axes
+        left, width = 0.1, 0.65
+        bottom, height = 0.1, 0.65
+    
+        rect_scatter = [left, bottom, width, height]
+        #rect_histx = [left, bottom_h, width, 0.2]
+        #rect_histy = [left_h, bottom, 0.2, height]
+        
+        # start with a rectangular Figure
+        fig = plt.figure(1, figsize=(8, 8))
+        
+        axScatter = plt.axes(rect_scatter)
+        
+        # the scatter plot:
+        axScatter.scatter(x_val, y_val)
+        
+        # now determine nice limits by hand:        
+        axScatter.set_xlim(min(x_val) - min(np.absolute(x_val))  , max(x_val) + min(np.absolute(x_val)))
+        axScatter.set_ylim(min(y_val) - min(np.absolute(y_val)) , max(y_val) + min(np.absolute(y_val)))
+
+        # label of axes        
+        fig.suptitle('J-V curve: ' + self.file_name, fontsize = 25)# + Data.parsedList[0])
+        plt.xlabel("Voltage(V)", fontsize = 12)
+        plt.ylabel("Current (mA)", fontsize = 12)
+        
+        # setting of axes
+        plt.axhline(0, color='black')
+        plt.axvline(0, color='black')
+        if write == 'y':
+            plt.savefig('C:/Users/Public/Documents/'+ self.file_name[0:-4] +'.jpg')        
+        plt.show()
+
+        #Image.open('testplot.png').save('testplot.jpg','JPEG')
+
+    def parseFields(self):
+        from dateutil.parser import parse
+        import re
+    
+        for line in self.rawList:
+            index = line.find(":")
+            if line.find("\t") >= 0:
+                pass
+            elif line[:index] == 'Device Name':
+                self.parsedList.append(['Device Name', line[index+2:]])
+            elif line[:index] == 'Description':
+                self.parsedList.append(['Description', line[index+2:]])
+            elif line[:index] == 'Area':
+                self.parsedList.append(['Area', line[index+2:]])
+            elif line[:index] == 'Block':
+                self.parsedList.append(['Block', line[index+2:]])
+            elif line[:index] == 'Carrier':
+                self.parsedList.append(['Carrier', line[index+2:]])
+            elif line[:index] == 'Device':
+                self.parsedList.append(['Device', line[index+2:]])
+            elif line[:index] == 'LB device':
+                self.parsedList.append(['LB device', line[index+2:]])
+            elif line.find('Measured on') > -1:
+                self.parsedList.append(['Test Time', parse(line[14:])])
+            elif line[:index] == 'Sensor':
+                x = parseColon(line)
+                print x
+                #self.parsedList.append([x.group(1), x.group(2)],[x.group(3)+x.group(4),x.group(5)],[x.group(6)+x.group(7),x.group(8)])
+
+                
+               
+
+def parseLine(line):
+    import re
+    p = re.compile(ur'(?P<colon>([A-Z]?):)')     
+    colonList = re.findall(p, line);
+    parsedList= re.sub( p, u"\n", line)
+    returnList = []
+    for x in len(colonList):
+        parsedList[x]
+    
+
+def find_between( s, first, last ):
+    try:
+        start = s.index( first ) + len( first )
+        end = s.index( last, start )
+        return s[start:end]
+    except ValueError:
+        return ""
+
+def find_between_r( s, first, last ):
+    try:
+        start = s.rindex( first ) + len( first )
+        end = s.rindex( last, start )
+        return s[start:end]
+    except ValueError:
+        return ""
+
+    
+    
+#def splitString(string, index):
+ #   try:
+  #      return [float(string[:index]), float(string[index+1:])]
+   # except:
+    #    return
+
+def main():
+    dataTest = Data('C:/Users/jye/Desktop', 'opv_Friday_d1  151014-172315.txt')
+    dataTest.parseFields()
+    print dataTest.parsedList
+    dataTest.plot()
+    
