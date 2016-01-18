@@ -1,0 +1,240 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Jan 11 09:23:09 2016
+
+@author: jye
+"""
+
+def loadList(directory, file_name):
+    filePath = directory + "/" + file_name
+    
+    with open(filePath, 'r') as infile:
+        data = infile.read()  # Read the contents of the file into memory.
+
+    # Return a list of the lines, breaking at line boundaries.
+    return data.splitlines()
+    
+def splitTab(dataList):
+    
+    stringList = []
+    for line in dataList:
+        if line.find("\t") > -1:
+            tab = line.find("\t")
+            try:
+                if float(line[:tab]) != None:               
+                    x = [float(line[:tab]), float(line[tab+1:])]
+                    stringList.append(x)
+            except:
+                pass
+    return stringList
+
+class Data(object):
+    def __init__(self, directory = 'C:\Users\jye\Desktop', file_name = 'opv_Friday_d1  151014-172315.txt' ):
+        self.file_name = file_name
+        self.directory = directory
+        self.rawList = loadList(directory, file_name)
+        self.numList = splitTab(self.rawList)
+        self.parsedList = []
+        self.voltage = [[x[0], 0] for x in self.numList]
+        self.current = [[x[1], 1] for x in self.numList]
+
+    
+    def plot(self, write = 'n'):
+        #import Image
+
+        import matplotlib.pyplot as plt
+        import numpy as np
+        
+        x_val = [x[0] for x in self.numList]
+        y_val = [x[1] for x in self.numList]
+        
+        # definitions for the axes
+        left, width = 0.1, 0.65
+        bottom, height = 0.1, 0.65
+    
+        rect_scatter = [left, bottom, width, height]
+        #rect_histx = [left, bottom_h, width, 0.2]
+        #rect_histy = [left_h, bottom, 0.2, height]
+        
+        # start with a rectangular Figure
+        fig = plt.figure(1, figsize=(8, 8))
+        
+        axScatter = plt.axes(rect_scatter)
+        
+        # the scatter plot:
+        axScatter.scatter(x_val, y_val)
+        
+        # now determine nice limits by hand:        
+        axScatter.set_xlim(min(x_val) - min(np.absolute(x_val))  , max(x_val) + min(np.absolute(x_val)))
+        axScatter.set_ylim(min(y_val) - min(np.absolute(y_val)) , max(y_val) + min(np.absolute(y_val)))
+
+        # label of axes        
+        fig.suptitle('J-V curve: ' + self.file_name, fontsize = 25)# + Data.parsedList[0])
+        plt.xlabel("Voltage(V)", fontsize = 12)
+        plt.ylabel("Current (mA)", fontsize = 12)
+        
+        # setting of axes
+        plt.axhline(0, color='black')
+        plt.axvline(0, color='black')
+        if write == 'y':
+            plt.savefig('C:/Users/Public/Documents/'+ self.file_name[0:-4] +'.jpg')        
+        plt.show()
+
+        #Image.open('testplot.png').save('testplot.jpg','JPEG')
+
+    def parseFields(self):
+        from dateutil.parser import parse
+        import re
+        rawList = self.rawList
+        for linestr in rawList:
+            index = linestr.find(":")
+            if linestr.find("\t") >= 0:
+                pass
+            elif linestr[:index] == 'Device Name':
+                self.parsedList.append(['Device Name', linestr[index+2:]])
+            elif linestr[:index] == 'Description':
+                self.parsedList.append(['Description', linestr[index+2:]])
+            elif linestr[:index] == 'Area':
+                self.parsedList.append(['Area', linestr[index+2:]])
+            elif linestr[:index] == 'Block':
+                self.parsedList.append(['Block', linestr[index+2:]])
+            elif linestr[:index] == 'Carrier':
+                self.parsedList.append(['Carrier', linestr[index+2:]])
+            elif linestr[:index] == 'Device':
+                self.parsedList.append(['Device', linestr[index+2:]])
+            elif linestr[:index] == 'LB device':
+                self.parsedList.append(['LB device', linestr[index+2:]])
+            elif linestr.find('Measured on') > -1:
+                self.parsedList.append(['Test Time', parse(linestr[13:])])
+            
+            match = re.search(" ?SPA system IV test:  IV test type: basic  Recipe:  opvbac ?", linestr)
+            if match:
+                rsltSub = re.split(": +", linestr)
+                self.parsedList.append(rsltSub)
+            match = re.search("Sensor: blockA_rtd Value", linestr)
+            if match:
+                sensorBlock = re.split(": ?",linestr, 6)
+                self.parsedList.append(sensorBlock)
+            # result will look like -- > ['Sensor', 'blockA_rtd Value', ,'42 Units', 'C Channel', '3004 Area', '0 Block', 'A ']
+            match = re.search( "Sensor: light monitor Value", linestr)
+            if match:
+                sensorLight = re.split(": ?",linestr, 6)
+                self.parsedList.append(sensorLight)
+            match = re.search("Recipe Settings: Source mode:Voltage", linestr)
+            if match:
+                rsltNames = re.split(": ?",linestr, 3)
+                self.parsedList.append(rsltNames)
+            match = re.search("Limit Level", linestr)
+            if match:
+                lmtLevel = re.split(" ?Limit Level ?",linestr)
+                rsltLmtLevel = ('Limit Level', lmtLevel)
+                self.parsedList.append(rsltLmtLevel)
+            match = re.search("Delay in Sec", linestr)
+            if match:
+                delaySec = re.split(" ?Delay in Sec ?", linestr)
+                rsltDelay = ('Delay in Sec', delaySec)
+                self.parsedList.append(rsltDelay)
+            match = re.search("Sweep Points", linestr)
+            if match:
+                sweepPnt = re.split(": +| +", linestr,5)
+                noPnt = re.split(" ?Number of Points ?",sweepPnt[5])
+                rsltsweepPnt = (sweepPnt[1],sweepPnt[2], sweepPnt[3], sweepPnt[4],'Number of Points', noPnt)
+                self.parsedList.append(rsltsweepPnt)
+            match = re.search("Mesurement Speed (PLC)", linestr);
+            if match:
+                meaSpeed = re.split(" ?Mesurement Speed (PLC) ?", linestr,1)
+                rsltMeaSpeed = ['Mesurement Speed (PLC)', meaSpeed];
+                self.parsedList.append(rsltMeaSpeed)
+             
+                #self.parsedList.append([x.group(1), x.group(2)],[x.group(3)+x.group(4),x.group(5)],[x.group(6)+x.group(7),x.group(8)])
+             
+                
+               
+
+def parseLine(line):
+    import re
+    p = re.compile(ur'(?P<colon>([A-Z]?):)')     
+    colonList = re.findall(p, line);
+    parsedList= re.sub( p, u"\n", line)
+    returnList = []
+    for x in len(colonList):
+        parsedList[x]
+    
+
+def find_between( s, first, last ):
+    try:
+        start = s.index( first ) + len( first )
+        end = s.index( last, start )
+        return s[start:end]
+    except ValueError:
+        return ""
+
+def find_between_r( s, first, last ):
+    try:
+        start = s.rindex( first ) + len( first )
+        end = s.rindex( last, start )
+        return s[start:end]
+    except ValueError:
+        return ""
+
+    
+    
+#def splitString(string, index):
+ #   try:
+  #      return [float(string[:index]), float(string[index+1:])]
+   # except:
+    #    return
+    
+def createHDF5(Data, saveloc = 'C:\Users\jye\Desktop', overwrite = "y"): 
+#Author: Yash Pershad
+#Date: 1/12/2016
+#Makes an hdf5 file with the same name as the txt file from which data is organized
+#need to input file location and save location
+    import pdb
+    import re    
+    import os    
+    import h5py
+    fileName = Data.file_name
+    space = re.compile(" ")
+    fileName = space.sub("_", fileName)
+        
+        
+    savename = re.findall('[^.]*',fileName)[0]+'.hdf5'
+    
+    try:
+        savedata=h5py.File(savename,'w-')
+        willsave='y'
+        print('Creating file '+savename)
+    except:
+        print(saveloc+' already exists')
+        if overwrite=='y':
+            os.remove(saveloc+"/" + savename)
+            savedata=h5py.File(savename,'w-')
+            willsave='y'
+            print('Overwriting')
+        else:
+            willsave='n'
+            print('Leaving old data')
+    savedata.create_group('Data')
+    for x in Data.parsedList:
+        savedata[x[0]] = x[1]
+    pdb.set_trace()
+def closeHdf5():
+    import h5py    
+    import gc
+    for obj in gc.get_objects():   # Browse through ALL objects
+        if isinstance(obj, h5py.File):   # Just HDF5 files
+            try:
+                obj.close()
+            except:
+                pass # Was already closed
+
+def main():
+   # dataTest = Data('C:/Users/jye/Desktop', 'opv_Friday_d1  151014-172315.txt')
+    dataTest = Data()
+    
+    dataTest.parseFields()
+    print dataTest.parsedList
+    createHDF5(dataTest)
+    dataTest.plot()
+    
