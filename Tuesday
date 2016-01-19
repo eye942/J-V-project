@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Jan 11 09:23:09 2016
 
-@author: jye
-"""
 
 def loadList(directory, file_name):
     filePath = directory + "/" + file_name
@@ -29,8 +25,10 @@ def splitTab(dataList):
     return stringList
 
 class Data(object):
+    '''Creates the Data class. Takes a text log and analyzes it.
+    '''
     def __init__(self, directory = 'C:\Users\jye\Desktop', file_name = 'opv_Friday_d1  151014-172315.txt' ):
-        self.file_name = file_name
+        self.fileName = file_name
         self.directory = directory
         self.rawList = loadList(directory, file_name)
         self.numList = splitTab(self.rawList)
@@ -40,8 +38,7 @@ class Data(object):
 
     
     def plot(self, write = 'n'):
-        #import Image
-
+        import re
         import matplotlib.pyplot as plt
         import numpy as np
         
@@ -69,15 +66,27 @@ class Data(object):
         axScatter.set_ylim(min(y_val) - min(np.absolute(y_val)) , max(y_val) + min(np.absolute(y_val)))
 
         # label of axes        
-        fig.suptitle('J-V curve: ' + self.file_name, fontsize = 25)# + Data.parsedList[0])
+        fig.suptitle('J-V curve: ' + self.fileName, fontsize = 25)# + Data.parsedList[0])
         plt.xlabel("Voltage(V)", fontsize = 12)
         plt.ylabel("Current (mA)", fontsize = 12)
         
         # setting of axes
         plt.axhline(0, color='black')
         plt.axvline(0, color='black')
+        
+        #saving
         if write == 'y':
-            plt.savefig('C:/Users/Public/Documents/'+ self.file_name[0:-4] +'.jpg')        
+            try:
+                p = re.compile(ur'\\')
+                test_str = self.directory
+                subst = "/"
+  
+                directory = re.sub(p, subst, test_str)
+                plt.savefig(directory + self.fileName[0:-4] +'.jpg')
+            except:
+                print "Can't save graph"
+        
+        
         plt.show()
 
         #Image.open('testplot.png').save('testplot.jpg','JPEG')
@@ -111,29 +120,32 @@ class Data(object):
             if match:
                 rsltSub = re.split(": +", linestr)
                 self.parsedList.append(rsltSub)
-            match = re.search("Sensor: blockA_rtd Value", linestr)
+            match = re.search("Sensor:", linestr)
             if match:
-                sensorBlock = re.split(": ?",linestr, 6)
-                self.parsedList.append(sensorBlock)
-            # result will look like -- > ['Sensor', 'blockA_rtd Value', ,'42 Units', 'C Channel', '3004 Area', '0 Block', 'A ']
-            match = re.search( "Sensor: light monitor Value", linestr)
-            if match:
-                sensorLight = re.split(": ?",linestr, 6)
-                self.parsedList.append(sensorLight)
+                sensorProp = re.match("Sensor: (?P<Sensor>.+) Value: (?P<Value>.+) Units: (?P<Units>.+) Channel: (?P<Channel>.+) Area: (?P<Area>.+) Block: (?P<Block>.+) ",linestr)
+                self.parsedList.append(sensorProp.groupdict().items())
+                    
             match = re.search("Recipe Settings: Source mode:Voltage", linestr)
             if match:
                 rsltNames = re.split(": ?",linestr, 3)
                 self.parsedList.append(rsltNames)
+
             match = re.search("Limit Level", linestr)
             if match:
-                lmtLevel = re.split(" ?Limit Level ?",linestr)
-                rsltLmtLevel = ('Limit Level', lmtLevel)
-                self.parsedList.append(rsltLmtLevel)
+                p = re.match(".+Limit Level(?P<LimLev>.+)", linestr)
+                if p:
+        
+                    self.parsedList.append(["Limit Level", p.group("LimLev")])
+                else:
+                    print "AHHHH"                    
+           
             match = re.search("Delay in Sec", linestr)
             if match:
-                delaySec = re.split(" ?Delay in Sec ?", linestr)
-                rsltDelay = ('Delay in Sec', delaySec)
-                self.parsedList.append(rsltDelay)
+                p = re.compile('.+Delay in Sec (?P<DiS>.+)')
+ 
+                x = re.match(p, linestr)
+                self.parsedList.append(["Delay in Sec", x.group("DiS")])
+
             match = re.search("Sweep Points", linestr)
             if match:
                 sweepPnt = re.split(": +| +", linestr,5)
@@ -146,38 +158,7 @@ class Data(object):
                 rsltMeaSpeed = ['Mesurement Speed (PLC)', meaSpeed];
                 self.parsedList.append(rsltMeaSpeed)
              
-                #self.parsedList.append([x.group(1), x.group(2)],[x.group(3)+x.group(4),x.group(5)],[x.group(6)+x.group(7),x.group(8)])
-             
-                
                
-
-def parseLine(line):
-    import re
-    p = re.compile(ur'(?P<colon>([A-Z]?):)')     
-    colonList = re.findall(p, line);
-    parsedList= re.sub( p, u"\n", line)
-    returnList = []
-    for x in len(colonList):
-        parsedList[x]
-    
-
-def find_between( s, first, last ):
-    try:
-        start = s.index( first ) + len( first )
-        end = s.index( last, start )
-        return s[start:end]
-    except ValueError:
-        return ""
-
-def find_between_r( s, first, last ):
-    try:
-        start = s.rindex( first ) + len( first )
-        end = s.rindex( last, start )
-        return s[start:end]
-    except ValueError:
-        return ""
-
-    
     
 #def splitString(string, index):
  #   try:
@@ -185,7 +166,7 @@ def find_between_r( s, first, last ):
    # except:
     #    return
     
-def createHDF5(Data, saveloc = 'C:\Users\jye\Desktop', overwrite = "y"): 
+def createHDF5(Data, saveloc = 'C:\Users\Eric\Desktop', overwrite = "y"): 
 #Author: Yash Pershad
 #Date: 1/12/2016
 #Makes an hdf5 file with the same name as the txt file from which data is organized
@@ -217,11 +198,13 @@ def createHDF5(Data, saveloc = 'C:\Users\jye\Desktop', overwrite = "y"):
             print('Leaving old data')
     savedata.create_group('Data')
     for x in Data.parsedList:
-        savedata[x[0]] = x[1]
+        savedata[x[0]] = x[1:]
     pdb.set_trace()
+
 def closeHdf5():
     import h5py    
     import gc
+    print "Closing objects"
     for obj in gc.get_objects():   # Browse through ALL objects
         if isinstance(obj, h5py.File):   # Just HDF5 files
             try:
@@ -230,11 +213,13 @@ def closeHdf5():
                 pass # Was already closed
 
 def main():
-   # dataTest = Data('C:/Users/jye/Desktop', 'opv_Friday_d1  151014-172315.txt')
-    dataTest = Data()
+    dataTest = Data('C:/Users/Eric/Desktop', 'opv_Friday_d1  151014-170349.txt')
+    #dataTest = Data()
+    import pandas
     
     dataTest.parseFields()
     print dataTest.parsedList
-    createHDF5(dataTest)
-    dataTest.plot()
-    
+        #createHDF5(dataTest)
+        #dataTest.plot("y")
+        # except:
+        #closeHdf5()
