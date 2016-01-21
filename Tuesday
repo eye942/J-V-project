@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import pdb
 
 def loadList(directory, file_name):
     filePath = directory + "/" + file_name
@@ -27,7 +27,9 @@ def splitTab(dataList):
 class Data(object):
     '''Creates the Data class. Takes a text log and analyzes it.
     '''
-    def __init__(self, directory = 'C:\Users\jye\Desktop', file_name = 'opv_Friday_d1  151014-172315.txt' ):
+    def __init__(self, directory = 'C:\\Users\\jye\\Desktop', file_name = 'opv_Friday_d1  151014-172247.txt' ):
+        import re
+        
         self.fileName = file_name
         self.directory = directory
         self.rawList = loadList(directory, file_name)
@@ -35,10 +37,13 @@ class Data(object):
         self.parsedList = []
         self.voltage = [[x[0], 0] for x in self.numList]
         self.current = [[x[1], 1] for x in self.numList]
+        p = re.compile(ur'\\')
+        test_str = self.directory
+        subst = "/"
+        self.forwardDir = re.sub(p, subst, test_str)
 
     
     def plot(self, write = 'n'):
-        import re
         import matplotlib.pyplot as plt
         import numpy as np
         
@@ -50,8 +55,6 @@ class Data(object):
         bottom, height = 0.1, 0.65
     
         rect_scatter = [left, bottom, width, height]
-        #rect_histx = [left, bottom_h, width, 0.2]
-        #rect_histy = [left_h, bottom, 0.2, height]
         
         # start with a rectangular Figure
         fig = plt.figure(1, figsize=(8, 8))
@@ -77,12 +80,8 @@ class Data(object):
         #saving
         if write == 'y':
             try:
-                p = re.compile(ur'\\')
-                test_str = self.directory
-                subst = "/"
-  
-                directory = re.sub(p, subst, test_str)
-                plt.savefig(directory + self.fileName[0:-4] +'.jpg')
+                plt.savefig(self.directory + "/" + self.fileName[0:-4] +'.jpg')
+            
             except:
                 print "Can't save graph"
         
@@ -92,16 +91,22 @@ class Data(object):
         #Image.open('testplot.png').save('testplot.jpg','JPEG')
 
     def parseFields(self):
-        from dateutil.parser import parse
         import re
+        #import pdb
         rawList = self.rawList
         for linestr in rawList:
-            index = linestr.find(":")
+
+            #Eliminate redundancy for the plot points
             if linestr.find("\t") >= 0:
                 pass
-            elif linestr[:index] == 'Device Name':
-                self.parsedList.append(['Device Name', linestr[index+2:]])
-            elif linestr[:index] == 'Description':
+            #Check for all colons in the line
+            x = [m.start() for m in re.finditer(': ', linestr)]
+            
+            #Separates the line into two if there is only one colon
+            if len(x) == 1:
+                self.parsedList.append(re.split(": ", linestr))
+
+            """elif linestr[:index] == 'Description':
                 self.parsedList.append(['Description', linestr[index+2:]])
             elif linestr[:index] == 'Area':
                 self.parsedList.append(['Area', linestr[index+2:]])
@@ -112,53 +117,124 @@ class Data(object):
             elif linestr[:index] == 'Device':
                 self.parsedList.append(['Device', linestr[index+2:]])
             elif linestr[:index] == 'LB device':
-                self.parsedList.append(['LB device', linestr[index+2:]])
-            elif linestr.find('Measured on') > -1:
-                self.parsedList.append(['Test Time', parse(linestr[13:])])
+                self.parsedList.append(['LB device', linestr[index+2:]])"""
             
-            match = re.search(" ?SPA system IV test:  IV test type: basic  Recipe:  opvbac ?", linestr)
+            #Take out the abnormal time string: added into parsed list
+            if linestr.find('Measured on') > -1:
+                self.parsedList.append(['Test Time', linestr[13:]])
+            
+            #Need to be replaced with more robust code @made a little better
+            match = re.search(" ?SPA system IV test:  IV test type: basic ?", linestr)
             if match:
-                rsltSub = re.split(": +", linestr)
-                self.parsedList.append(rsltSub)
+                x = re.compile("SPA system IV test:  IV test type: (?P<test_type>.+)  Recipe:  (?P<Recipe>.+)")
+                y = re.match(x, linestr)
+                test = ["IV test type", y.group("test_type")]
+                recipe = ["Recipe", y.group("Recipe")]
+                self.parsedList.append(["SPA system IV test", [test, recipe]])
+           
+           #Takes in sensor properties: appends the dictionary form as a list
             match = re.search("Sensor:", linestr)
             if match:
                 sensorProp = re.match("Sensor: (?P<Sensor>.+) Value: (?P<Value>.+) Units: (?P<Units>.+) Channel: (?P<Channel>.+) Area: (?P<Area>.+) Block: (?P<Block>.+) ",linestr)
-                self.parsedList.append(sensorProp.groupdict().items())
-                    
-            match = re.search("Recipe Settings: Source mode:Voltage", linestr)
+                dictList = []
+                sensorDict = sensorProp.groupdict()
+                sensorName = sensorProp.groupdict().pop("Sensor")
+                for key, value in sensorDict.iteritems():
+                    temp = [key,value]
+                    dictList.append(temp)                
+                
+                self.parsedList.append([sensorName, dictList])
+            
+            #Need to be replaced with more robust code
+            match = re.search("Recipe Settings: Source mode", linestr)
             if match:
-                rsltNames = re.split(": ?",linestr, 3)
-                self.parsedList.append(rsltNames)
-
+                x = re.match(".+Source mode:(?P<Source_mode>.+)", linestr)
+                y= x.group("Source_mode")
+                self.parsedList.append(["Source Mode", y])
+            
+            #Puts Limit Level into the parsed list
             match = re.search("Limit Level", linestr)
             if match:
                 p = re.match(".+Limit Level(?P<LimLev>.+)", linestr)
-                if p:
-        
+                if p:        
                     self.parsedList.append(["Limit Level", p.group("LimLev")])
                 else:
-                    print "AHHHH"                    
+                    print "Could not incorporate Limit Level into the list"                     
            
+            #Puts Delay in Seconds into the parsed list          
             match = re.search("Delay in Sec", linestr)
             if match:
                 p = re.compile('.+Delay in Sec (?P<DiS>.+)')
- 
                 x = re.match(p, linestr)
+                
                 self.parsedList.append(["Delay in Sec", x.group("DiS")])
 
-            match = re.search("Sweep Points", linestr)
-            if match:
-                sweepPnt = re.split(": +| +", linestr,5)
-                noPnt = re.split(" ?Number of Points ?",sweepPnt[5])
-                rsltsweepPnt = (sweepPnt[1],sweepPnt[2], sweepPnt[3], sweepPnt[4],'Number of Points', noPnt)
-                self.parsedList.append(rsltsweepPnt)
+            #Puts Measurement into the parsed list
             match = re.search("Mesurement Speed (PLC)", linestr);
             if match:
-                meaSpeed = re.split(" ?Mesurement Speed (PLC) ?", linestr,1)
-                rsltMeaSpeed = ['Mesurement Speed (PLC)', meaSpeed];
-                self.parsedList.append(rsltMeaSpeed)
+                p = re.compile(' Mesurement Speed.+ (.+)') 
+                mesSpeed = re.search(p, linestr)
+                
+                self.parsedList.append(["Mesurement Speed (PLC)", mesSpeed])
              
-               
+            match = re.search("Sweep Points", linestr)
+            if match:
+                sweepPnt = re.match(" Sweep Points:  Start (?P<Start>.+) Stop (?P<Stop>.+) Number of Points  (?P<NumPoints>.+)", linestr)
+                sweepDict = sweepPnt.groupdict()
+                dictList = []
+                for key, value in sweepDict.iteritems():
+                    temp = [key,value]
+                    dictList.append(temp)
+                self.parsedList.append(["Sweep Points", dictList] )
+        
+        
+        
+    def createHDF5(self, saveLoc = 'C:/Users/Eric/Desktop', overwrite = "y"): 
+        #Author: Yash Pershad
+        #Date: 1/12/2016
+        #Makes an hdf5 file with the same name as the txt file from which data is organized
+        #need to input file location and save location
+        import re    
+        import os    
+        import h5py
+        fileName = self.fileName
+        space = re.compile(" ")
+        fileName = space.sub("_", fileName)
+        
+                
+        saveName = re.findall('[^.]*',fileName)[0]+'.hdf5'
+            
+        try:
+            saveData=h5py.File(saveName,'w-')
+            willsave='y'
+            print('Creating file '+saveName)
+        except:
+            print(saveLoc+' already exists')
+            if overwrite=='y':
+                os.remove(saveLoc+ "/" + saveName)
+                saveData=h5py.File(saveName,'w-')
+                willsave='y'
+                print('Overwriting')
+            else:
+                willsave='n'
+                print('Leaving old data')
+        saveData.create_group('Data')
+        for x in self.parsedList:
+            try:
+                if len(x) == 2:
+                    if isinstance(x[1], list):
+                        saveData.create_group(str(x[0]))
+                        for e in x[1]:
+                            saveData[str(x[0])][str(e[0])] = str(e[1])
+                    else:
+                        saveData[str(x[0])] = str(x[1])                        
+            except:
+                pass
+            
+        saveData["Voltage"] = self.voltage
+        saveData["Current"] = self.current
+        saveData["Plot Points"] = self.numList
+        return saveData
     
 #def splitString(string, index):
  #   try:
@@ -166,40 +242,7 @@ class Data(object):
    # except:
     #    return
     
-def createHDF5(Data, saveloc = 'C:\Users\Eric\Desktop', overwrite = "y"): 
-#Author: Yash Pershad
-#Date: 1/12/2016
-#Makes an hdf5 file with the same name as the txt file from which data is organized
-#need to input file location and save location
-    import pdb
-    import re    
-    import os    
-    import h5py
-    fileName = Data.file_name
-    space = re.compile(" ")
-    fileName = space.sub("_", fileName)
-        
-        
-    savename = re.findall('[^.]*',fileName)[0]+'.hdf5'
-    
-    try:
-        savedata=h5py.File(savename,'w-')
-        willsave='y'
-        print('Creating file '+savename)
-    except:
-        print(saveloc+' already exists')
-        if overwrite=='y':
-            os.remove(saveloc+"/" + savename)
-            savedata=h5py.File(savename,'w-')
-            willsave='y'
-            print('Overwriting')
-        else:
-            willsave='n'
-            print('Leaving old data')
-    savedata.create_group('Data')
-    for x in Data.parsedList:
-        savedata[x[0]] = x[1:]
-    pdb.set_trace()
+
 
 def closeHdf5():
     import h5py    
@@ -211,15 +254,22 @@ def closeHdf5():
                 obj.close()
             except:
                 pass # Was already closed
+    
 
-def main():
-    dataTest = Data('C:/Users/Eric/Desktop', 'opv_Friday_d1  151014-170349.txt')
+def main(close = 'y'):
+    dataTest = Data()
     #dataTest = Data()
-    import pandas
+    #import pandas
     
     dataTest.parseFields()
     print dataTest.parsedList
-        #createHDF5(dataTest)
-        #dataTest.plot("y")
+    #try:    
+    saveData = dataTest.createHDF5(dataTest.forwardDir)
+    #except:
+     #   print "Could not generate HDF5 file
+    print saveData.items()
+
+    dataTest.plot('y')
         # except:
-        #closeHdf5()
+    if close == 'y':
+        closeHdf5()
