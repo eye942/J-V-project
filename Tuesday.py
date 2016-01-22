@@ -255,6 +255,23 @@ def closeHdf5():
             except:
                 pass # Was already closed
     
+def openFiles(directory = 'C:\\Users\\jye\\Desktop'):
+    import os
+    listDir = os.listdir(directory)
+    osName = os.name
+    """:
+        print "Weird OS alert!"
+        directory = input("Where are your files? Include any slashes")"""
+    for fileName in listDir:
+        
+        #Is it a hdf5?
+        if fileName[-4:]== ".txt":
+            data = Data(directory, fileName)
+            data.parseFields()
+            if osName == "nt":
+                data.createHDF5(data.forwardDir)
+            elif osName == "posix":
+                data.createHDF5(data.directory)  
 
 def main(close = 'y'):
     dataTest = Data()
