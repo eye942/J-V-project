@@ -37,7 +37,7 @@ class Data(object):
         self.parsedList = []
         self.voltage = [[x[0], 0] for x in self.numList]
         self.current = [[x[1], 1] for x in self.numList]
-        p = re.compile(ur'\\')
+        p = re.compile('\\\\')
         test_str = self.directory
         subst = "/"
         self.forwardDir = re.sub(p, subst, test_str)
@@ -197,6 +197,12 @@ class Data(object):
         import re    
         import os    
         import h5py
+                
+        if os.name == "nt":
+            slash = "\\"
+        elif os.name == "posix":
+            slash = "/"
+        
         fileName = self.fileName
         space = re.compile(" ")
         fileName = space.sub("_", fileName)
@@ -209,9 +215,9 @@ class Data(object):
             willsave='y'
             print('Creating file '+saveName)
         except:
-            print(saveLoc+' already exists')
+            print(saveLoc + slash + saveName + ' already exists')
             if overwrite=='y':
-                os.remove(saveLoc+ "/" + saveName)
+                os.remove(saveLoc+ slash + saveName)
                 saveData=h5py.File(saveName,'w-')
                 willsave='y'
                 print('Overwriting')
@@ -255,10 +261,15 @@ def closeHdf5():
             except:
                 pass # Was already closed
     
-def openFiles(directory = 'C:\\Users\\jye\\Desktop'):
+
+def openFiles(directory = 'C:\Users\jye\Desktop'):
     import os
+    
     listDir = os.listdir(directory)
-    osName = os.name
+    if os.name == "nt":
+        slash = "\\"
+    elif os.name == "posix":
+        slash = "/"
     """:
         print "Weird OS alert!"
         directory = input("Where are your files? Include any slashes")"""
@@ -268,25 +279,46 @@ def openFiles(directory = 'C:\\Users\\jye\\Desktop'):
         if fileName[-4:]== ".txt":
             data = Data(directory, fileName)
             data.parseFields()
-            if osName == "nt":
-                data.createHDF5(data.forwardDir)
-            elif osName == "posix":
-                data.createHDF5(data.directory)  
+            if slash == "\\":
+                data.createHDF5(data.directory)
+            elif slash == "/":
+                data.createHDF5(data.directory + "/" + "hdf5" + fileName[-4:] +".hdf5")
 
-def main(close = 'y'):
-    dataTest = Data()
-    #dataTest = Data()
-    #import pandas
+def plotDevice( directory = "C:\Users\jye\Desktop", deviceName = "opv_Friday_d1", write = 'n'):
+    import os
+    import h5py
+    import matplotlib.pyplot as plt
+    import numpy as np
     
-    dataTest.parseFields()
-    print dataTest.parsedList
-    #try:    
-    saveData = dataTest.createHDF5(dataTest.forwardDir)
-    #except:
-     #   print "Could not generate HDF5 file
-    print saveData.items()
+    listDir = os.listdir(directory)
 
-    dataTest.plot('y')
-        # except:
-    if close == 'y':
-        closeHdf5()
+    #Account for file system
+    if os.name == "nt":
+        slash = "\\"
+    elif os.name == "posix":
+        slash = "/"
+    
+    plotPoints = []    
+    count = 0    
+    
+    for fileName in listDir:        
+        #Is it a hdf5?
+        if fileName[-5:]== ".hdf5":
+
+            if slash == "/":
+                temp = h5py.File(directory + slash + fileName,"r")
+            elif slash == "\\":
+                temp = h5py.File(directory + slash + fileName, "r")
+            
+
+            
+            else:
+                print "Congrats on having a different computer. Please try again on a Unix-based or Windows OS"
+
+            if temp["Device Name"].value == deviceName:
+                try:                
+                    plotPoints = plotPoints + temp["Plot Points"].value.tolist()  
+                    count += 1
+                except:
+                    pdb.set_trace()
+                    
