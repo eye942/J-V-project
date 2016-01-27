@@ -197,12 +197,6 @@ class Data(object):
         import re    
         import os    
         import h5py
-                
-        if os.name == "nt":
-            slash = "\\"
-        elif os.name == "posix":
-            slash = "/"
-        
         fileName = self.fileName
         space = re.compile(" ")
         fileName = space.sub("_", fileName)
@@ -211,13 +205,13 @@ class Data(object):
         saveName = re.findall('[^.]*',fileName)[0]+'.hdf5'
             
         try:
-            saveData=h5py.File(saveName,'w-')
+            saveData=h5py.File(saveLoc + '/' + saveName,'w-')
             willsave='y'
             print('Creating file '+saveName)
         except:
-            print(saveLoc + slash + saveName + ' already exists')
+            print(saveLoc+' already exists')
             if overwrite=='y':
-                os.remove(saveLoc+ slash + saveName)
+                os.remove(saveLoc+ "/" + saveName)
                 saveData=h5py.File(saveName,'w-')
                 willsave='y'
                 print('Overwriting')
