@@ -365,6 +365,7 @@ def plotDevice( directory = "C:\Users\jye\Desktop", deviceName = "opv_Friday_d1"
     import matplotlib.cm as cm
     import numpy as np
     import matplotlib.colors as color
+    from itertools import cycle
      
     listDir = os.listdir(directory)
 
@@ -379,9 +380,10 @@ def plotDevice( directory = "C:\Users\jye\Desktop", deviceName = "opv_Friday_d1"
     length = len(listDir)
     '''#coloring the plot'''
     x = np.arange(length)
-    ys = [i + x + (i * x) ** 2 for i in range(length)]
-    colors = cm.rainbow(np.linspace(0, 1, len(ys)))
-
+    colors = iter(cm.rainbow(np.linspace(0, 1, length)))
+    rainbow = ["r", "orange","Yellow", "B",  "Violet"]    
+    colorWow = cycle(rainbow)
+    
     # definitions for the axes
     left, width = 0.1, 0.65
     bottom, height = 0.1, 0.65
@@ -393,7 +395,7 @@ def plotDevice( directory = "C:\Users\jye\Desktop", deviceName = "opv_Friday_d1"
     
     axScatter = plt.axes(rect_scatter)
     
-    for fileName, c in zip(listDir, colors):        
+    for fileName in listDir:        
         #Is it a hdf5?
         if fileName[-5:]== ".hdf5":
 
@@ -404,17 +406,16 @@ def plotDevice( directory = "C:\Users\jye\Desktop", deviceName = "opv_Friday_d1"
             else:
                 print "Congrats on having a different computer. Please try again on a Unix-based or Windows OS"
 
-            if temp["Device Name"].value == deviceName:
+            if temp["Data"].attrs.get("Device Name") == deviceName:
                 try:
-                    voltage = [y[0] for y in plotPoints]
-                    current = [y[1] for y in plotPoints]
-                    
+                    voltage = [y[0] for y in temp["Data"]["Plot Points"][:]]
+                    current = [y[1] for y in temp["Data"]["Plot Points"][:]]
                     # the scatter plot:
-                    axScatter.scatter(voltage, current, c)
+                    axScatter.scatter(voltage, current, color = next(colors))
 
                 except:
                     pdb.set_trace()
-                    
+    
 
     
     
