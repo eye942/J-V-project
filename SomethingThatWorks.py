@@ -340,7 +340,36 @@ def unifyHdf5(directory, saveLoc, overwrite = 'y'):
         saveData.close()
     
         
+def appendHDF5(root, addFile):
+    import h5py
+    import np    
     
+    x = addFile.rfind("/")
+    newData = Data(addFile[:x], addFile[x+1:])
+    
+    dataSet = h5py.File(root, 'w')
+    key = newData.device
+    
+    f = newData.create_group(key)
+    g = f.create_group(str('/'+ str(newData.date) + '/' + str(newData.time)))
+    try:
+        arr = np.array(newData.numList)
+        dSetPlot = g.create_dataset("Plot Points", data = arr)
+    except:
+        pass
+    attribs = g.create_group("Attributes")
+    for x in newData.parsedList:
+        #try:
+        if len(x) == 2:
+            if isinstance(x[1], list):
+                h = attribs.create_group(x[0])
+                for e in x[1]:
+                    h[e[0]] = e[1]        
+            else:
+                g.attrs[x[0]] = np.string_(x[1])                        
+    g.attrs["Misc"] = attribs.ref
+    print("The device, " + key + ", is finished.")
+    dataSet.close()    
 
 def openFiles(directory = 'C:\Users\Eric\Desktop', saveLoc = "C:\Users\Eric\Desktop\J-V\test\hdf5"):
     import os
