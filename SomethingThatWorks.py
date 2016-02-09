@@ -396,6 +396,70 @@ def openFiles(directory = 'C:\Users\Eric\Desktop', saveLoc = "C:\Users\Eric\Desk
             elif slash == "/":
                 data.createHDF5(data.directory + "/hdf5/" + fileName[-4:] +".hdf5")
                 
+def plotFigure(fileLoc):
+    import numpy as np
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+    import h5py
+    
+    data = h5py.File(fileLoc, 'r')
+    
+    x_val = [x[0] for x in data['Data']["Plot Points"][:]]
+    y_val = [-x[1] for x in data['Data']["Plot Points"][:]]
+    data.close()
+    
+    # definitions for the axes
+    left, width = 0.1, 0.65
+    bottom, height = 0.1, 0.65
+
+    rect_scatter = [left, bottom, width, height]
+    
+    # start with a rectangular Figure
+    fig = plt.figure(1, figsize=(8, 8))
+    
+    axScatter = plt.axes(rect_scatter)
+    
+    # the scatter plot:
+    axScatter.scatter(x_val, y_val)
+    
+    # now determine nice limits by hand:        
+    axScatter.set_xlim(0  , max(x_val) + min(np.absolute(x_val)))
+    axScatter.set_ylim(0 , max(y_val) + min(np.absolute(y_val)))
+    
+    
+    
+    x = fileLoc.rfind("/")
+    # label of axes        
+    fig.suptitle('J-V curve: ' + fileLoc[x+1:], fontsize = 25)# + Data.parsedList[0])
+    plt.xlabel("Voltage(V)", fontsize = 12)
+    plt.ylabel("Current (mA)", fontsize = 12)
+    
+    # setting of axes
+    plt.axhline(0, color='black')
+    plt.axvline(0, color='black')
+    
+    #saving
+    '''if write == 'y':
+        try:
+            plt.savefig(self.directory + "/" + self.fileName[0:-4] +'.jpg')
+        
+        except:
+            print "Can't save graph"
+    '''
+    np.random.seed(1234)
+    x = 30*np.random.randn(10000)
+    mu = x.mean()
+    median = np.median(x)
+    sigma = x.std()
+    textstr = '$\mu=%.2f$\n$\mathrm{median}=%.2f$\n$\sigma=%.2f$'%(mu, median, sigma)
+
+    # these are matplotlib.patch.Patch properties
+    props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+
+    # place a text box in upper left in axes coords
+    axScatter.text(width, height, textstr, transform= axScatter.transAxes, fontsize=14,
+        verticalalignment='top', bbox=props)
+    plt.show()
 
 
 
