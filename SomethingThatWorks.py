@@ -396,6 +396,87 @@ def openFiles(directory = 'C:\Users\Eric\Desktop', saveLoc = "C:\Users\Eric\Desk
             elif slash == "/":
                 data.createHDF5(data.directory + "/hdf5/" + fileName[-4:] +".hdf5")
                 
+def plotDevice( directory = "C:\Users\jye\Desktop", deviceName = "opv_Friday_d1", write = 'n'):
+    import os
+    import h5py
+    import matplotlib.pyplot as plt
+    import matplotlib.cm as cm
+    import numpy as np
+    import matplotlib.colors as color
+    from itertools import cycle
+     
+    listDir = os.listdir(directory)
+
+    #Account for file system
+    if os.name == "nt":
+        slash = "\\"
+    elif os.name == "posix":
+        slash = "/"
+    
+    plotPoints = []    
+    count = 0
+    length = len(listDir)
+    '''#coloring the plot'''
+    x = np.arange(length)
+    colors = iter(cm.rainbow(np.linspace(0, 1, length)))
+    rainbow = ["r", "orange","Yellow", "B",  "Violet"]    
+    colorWow = cycle(rainbow)
+    
+    # definitions for the axes
+    left, width = 0.1, 0.65
+    bottom, height = 0.1, 0.65
+
+    rect_scatter = [left, bottom, width, height]
+    
+    # start with a rectangular Figure
+    fig = plt.figure(1, figsize=(8, 8))
+    
+    axScatter = plt.axes(rect_scatter)
+    
+    for fileName in listDir:        
+        #Is it a hdf5?
+        if fileName[-5:]== ".hdf5":
+
+            if slash == "/":
+                temp = h5py.File(directory + slash + fileName,"r")
+            elif slash == "\\":
+                temp = h5py.File(directory + slash + fileName, "r")
+            else:
+                print "Congrats on having a different computer. Please try again on a Unix-based or Windows OS"
+
+            if temp["Data"].attrs.get("Device Name") == deviceName:
+                try:
+                    voltage = [y[0] for y in temp["Data"]["Plot Points"][:]]
+                    current = [y[1] for y in temp["Data"]["Plot Points"][:]]
+                    # the scatter plot:
+                    axScatter.scatter(voltage, current, color = next(colors))
+                    count+=1
+
+                except:
+                    pdb.set_trace()
+    
+    print(count)
+    
+    # label of axes        
+    fig.suptitle('Aggregate J-V curve: ' + deviceName, fontsize = 25)
+    plt.xlabel("Voltage(V)", fontsize = 12)
+    plt.ylabel("Current (mA)", fontsize = 12)
+
+    
+    # setting of axes
+    plt.axhline(0, color='black')
+    plt.axvline(0, color='black')
+
+        
+    #saving
+    if write == 'y':
+        try:
+            plt.savefig(directory + slash + "figs" + slash + deviceName +'.jpg')
+        
+        except:
+            print "Can't save graph"
+    plt.show()
+    
 def plotFigure(fileLoc):
     import numpy as np
     import matplotlib as mpl
@@ -406,7 +487,6 @@ def plotFigure(fileLoc):
     
     x_val = [x[0] for x in data['Data']["Plot Points"][:]]
     y_val = [-x[1] for x in data['Data']["Plot Points"][:]]
-    data.close()
     
     # definitions for the axes
     left, width = 0.1, 0.65
@@ -451,7 +531,7 @@ def plotFigure(fileLoc):
     mu = x.mean()
     median = np.median(x)
     sigma = x.std()
-    textstr = '$\mu=%.2f$\n$\mathrm{median}=%.2f$\n$\sigma=%.2f$'%(mu, median, sigma)
+    textstr = '$MAX POWER=%.3e$\n$\mathrm{median}=%.2f$\n$\sigma=%.2f$'%(data['Data']['Plot Points'].attrs['Max Power'], median, sigma)
 
     # these are matplotlib.patch.Patch properties
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
