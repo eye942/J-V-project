@@ -804,6 +804,15 @@ def getVOC(fileLoc):
     print b
     hdf5.close()
 
+def findMaxPower(fileloc):
+    import numpy as np
+    import h5py
+    hdf5 = h5py.File(fileloc, 'r+')
+    power = [y[0]*y[1] for y in hdf5['Plot Points'][:]]
+    maxPower = np.amax(power)
+    print(maxPower)
+    
+
 
 
 #Functions for convenient testing
