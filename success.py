@@ -932,5 +932,4 @@ def zoom_effect02(ax1, ax2, **kwargs):
     ax2.add_patch(p)
 
     return c1, c2, bbox_patch1, bbox_patch2, p
-getFillFactor('C:/Users/Eric/Desktop/J-V/test/Hdf5/opv_Friday_d1  151014-170349.hdf5')
-plotFigure('C:/Users/Eric/Desktop/J-V/test/Hdf5/opv_Friday_d1  151014-170349.hdf5')
+
