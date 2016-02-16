@@ -18,7 +18,6 @@ def loadList(directory, file_name):
     return data.splitlines()
     
 def splitTab(dataList):
-    
     stringList = []
     for line in dataList:
         if line.find("\t") > -1:
@@ -46,6 +45,7 @@ class Data(object):
         matchObj = re.match("(?P<device>.+)  (?P<time>.+)\.txt", file_name)
         self.device = matchObj.group("device")
         time = parser.parse(matchObj.group("time"))
+        self.parseFields()
         self.date = time.date()
         self.time= time.time()        
         p = re.compile('\\\\')
@@ -54,8 +54,52 @@ class Data(object):
         self.forwardDir = re.sub(p, subst, test_str)
         power = [-x[0]*x[1] for x in self.numList]
         self.maxPower = max(power)
-
+        self.isc = self.getISC()
+        self.voc = self.getVOC()
+        self.fillFactor = self.getFillFactor()
+        
+        
+    def getISC(self):
+        import numpy as np
+        
+        points = self.numList
+        index = np.array([[np.abs(y[0])] for y in points]).argmin()
+        isc = points[index][1]    
+        return abs(isc)
+     
+    def getVOC(self):
+        import numpy as np
+        
+        points = [[y[0], -y[1]]for y in self.numList]
+        posList = []
+        negList = []   
+        for y in points:
+            if y[1] > 0:
+                posList.append(y)
+            else:
+                negList.append(y)
+                
+        posList = [[y[1],y[0]] for y in posList]
+        negList = [[y[1],y[0]] for y in negList]
     
+        indX = np.array([[np.abs(y[0])] for y in posList]).argmin()
+        closePos = posList[indX]
+        indY = np.array([[np.abs(y[0])] for y in negList]).argmin()
+        closeNeg = negList[indY]    
+        slope = (closePos[1] - closeNeg[1])/(closePos[0] - closeNeg[0])
+        b = closePos[1] - (slope * closePos[0])
+        return b    
+    
+    def getFillFactor(self):
+        import numpy as np
+    
+        power = self.maxPower
+        isc = self.isc
+        voc = self.voc
+        bigPower = isc*voc
+        fillFactor = power/bigPower
+        return fillFactor
+        
     def plot(self, write = 'n'):
         import matplotlib.pyplot as plt
         import numpy as np
@@ -254,9 +298,10 @@ class Data(object):
                         h[e[0]] = e[1]        
                 else:
                     saveData["Data"].attrs[x[0]] = np.string_(x[1])                        
-                #xcept:
-                
-                #print
+        saveData["Data"].attrs['isc'] = np.string_(self.isc)
+        saveData["Data"].attrs['voc'] = np.string_(self.voc)
+        saveData["Data"].attrs['Max Power'] = np.string_(self.maxPower)
+        saveData["Data"].attrs['Fill Factor'] = np.string_(self.fillFactor)
 
         return saveData
     
@@ -295,7 +340,6 @@ def unifyHdf5(directory, saveLoc, overwrite = 'y'):
     for txtFile in listDir:
         if txtFile[-4:] == ".txt":
             name = Data(directory, txtFile)
-            name.parseFields()
             dName = name.device
             if dName in nameDict:
                 #pdb.set_trace()
@@ -309,20 +353,17 @@ def unifyHdf5(directory, saveLoc, overwrite = 'y'):
     print("Finished writing data to memory")
     #Create a file for each device. Has a hierarchy of Date, time, Attribute
     for key in nameDict:
-        #Creates a         
+        #Creates an Hdf5 file         
         try:
             saveData=h5py.File(saveLoc + "/" + key,'w-')
-            willsave='y'
             print('Creating file '+ key)
         except:
                 print(saveLoc + "/" + key + ' already exists')
                 if overwrite=='y':
                     os.remove(saveLoc + "/" + key)
                     saveData=h5py.File(saveLoc + "/" + key,'w-')
-                    willsave='y'
                     print('Overwriting')
                 else:
-                    willsave='n'
                     print('Leaving old data')
 
         f = saveData.create_group(key)
@@ -331,6 +372,10 @@ def unifyHdf5(directory, saveLoc, overwrite = 'y'):
             try:
                 arr = np.array(point.numList)
                 dSetPlot = g.create_dataset("Plot Points", data = arr)
+                g.attrs['isc'] = np.string_(point.isc)
+                g.attrs['voc'] = np.string_(point.voc)
+                g.attrs['Max Power'] = np.string_(point.maxPower)
+                g.attrs['Fill Factor'] = np.string_(point.fillFactor)
             except:
                 pass
             attribs = g.create_group("Attributes")
