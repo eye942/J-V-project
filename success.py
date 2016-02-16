@@ -59,7 +59,7 @@ class Data(object):
         self.fillFactor = self.getFillFactor()
         
         
-    def getISC(self):
+    def setISC(self):
         import numpy as np
         
         points = self.numList
@@ -67,7 +67,7 @@ class Data(object):
         isc = points[index][1]    
         return abs(isc)
      
-    def getVOC(self):
+    def setVOC(self):
         import numpy as np
         
         points = [[y[0], -y[1]]for y in self.numList]
@@ -90,7 +90,7 @@ class Data(object):
         b = closePos[1] - (slope * closePos[0])
         return b    
     
-    def getFillFactor(self):
+    def setFillFactor(self):
         import numpy as np
     
         power = self.maxPower
@@ -530,7 +530,70 @@ def plotDevice( directory = "C:\Users\jye\Desktop", deviceName = "opv_Friday_d1"
         except:
             print "Can't save graph"
     plt.show()
-'''def plotFigure(fileLoc):
+    
+def plotPowerHysteresis( directory = "C:\Users\jye\Desktop", write = 'n'):
+    import h5py
+    import matplotlib.pyplot as plt
+    import matplotlib.cm as cm
+    import numpy as np
+    
+    '''count = 0
+    length = len(listDir)
+    # coloring the plot
+    x = np.arange(length)
+    colors = iter(cm.rainbow(np.linspace(0, 1, length)))
+    '''
+    
+    hdf5 = h5py.File(directory, 'r')
+    
+    # definitions for the axes
+    left, width = 0.1, 0.65
+    bottom, height = 0.1, 0.65
+
+    rect_scatter = [left, bottom, width, height]
+    
+    # start with a rectangular Figure
+    fig = plt.figure(1, figsize=(8, 8))
+    
+    axScatter = plt.axes(rect_scatter)
+    
+    for key in hdf5.keys():
+        for key2 in hdf5[key].keys():
+            try:
+                time = hdf5[key][key2].attrs['Test Time']
+                maxPower = hdf5[key][key2].attrs['Max Power']
+                axScatter.scatter(time, maxPower)
+            except:
+                pdb.set_trace()
+    
+    hdf5.close()
+    x = directory.rfind('/')
+    # label of axes        
+    fig.suptitle('Aggregate J-V curve: ' + directory[x:-4], fontsize = 25)
+    plt.xlabel("Voltage(V)", fontsize = 12)
+    plt.ylabel("Current (mA)", fontsize = 12)
+
+    
+    # setting of axes
+    plt.axhline(0, color='black')
+    plt.axvline(0, color='black')
+
+        
+    '''
+    #saving
+    if write == 'y':
+        try:
+            plt.savefig(directory + slash + "figs" + slash + deviceName +'.jpg')
+        
+        except:
+            print "Can't save graph"
+    '''
+    
+    plt.show()
+    
+    
+'''
+def plotFigure(fileLoc):
     import numpy as np
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes
@@ -748,87 +811,6 @@ def plotDeviceHdf5(fileDir, write = 'n'):
             print "Can't save graph"
     
     #Print plot
-    plt.show()
-
-def plotDevice( directory = "C:\Users\jye\Desktop", deviceName = "opv_Friday_d1", write = 'n'):
-    import os
-    import h5py
-    import matplotlib.pyplot as plt
-    import matplotlib.cm as cm
-    import numpy as np
-    import matplotlib.colors as color
-    from itertools import cycle
-     
-    listDir = os.listdir(directory)
-
-    #Account for file system
-    if os.name == "nt":
-        slash = "\\"
-    elif os.name == "posix":
-        slash = "/"
-    
-    plotPoints = []    
-    count = 0
-    length = len(listDir)
-    '''#coloring the plot'''
-    x = np.arange(length)
-    colors = iter(cm.rainbow(np.linspace(0, 1, length)))
-    rainbow = ["r", "orange","Yellow", "B",  "Violet"]    
-    colorWow = cycle(rainbow)
-    
-    # definitions for the axes
-    left, width = 0.1, 0.65
-    bottom, height = 0.1, 0.65
-
-    rect_scatter = [left, bottom, width, height]
-    
-    # start with a rectangular Figure
-    fig = plt.figure(1, figsize=(8, 8))
-    
-    axScatter = plt.axes(rect_scatter)
-    
-    for fileName in listDir:        
-        #Is it a hdf5?
-        if fileName[-5:]== ".hdf5":
-
-            if slash == "/":
-                temp = h5py.File(directory + slash + fileName,"r")
-            elif slash == "\\":
-                temp = h5py.File(directory + slash + fileName, "r")
-            else:
-                print "Congrats on having a different computer. Please try again on a Unix-based or Windows OS"
-
-            if temp["Data"].attrs.get("Device Name") == deviceName:
-                try:
-                    voltage = [y[0] for y in temp["Data"]["Plot Points"][:]]
-                    current = [y[1] for y in temp["Data"]["Plot Points"][:]]
-                    # the scatter plot:
-                    axScatter.scatter(voltage, current, color = next(colors))
-                    count+=1
-
-                except:
-                    pdb.set_trace()
-    
-    print(count)
-    
-    # label of axes        
-    fig.suptitle('Aggregate J-V curve: ' + deviceName, fontsize = 25)
-    plt.xlabel("Voltage(V)", fontsize = 12)
-    plt.ylabel("Current (mA)", fontsize = 12)
-
-    
-    # setting of axes
-    plt.axhline(0, color='black')
-    plt.axvline(0, color='black')
-
-        
-    #saving
-    if write == 'y':
-        try:
-            plt.savefig(directory + slash + "figs" + slash + deviceName +'.jpg')
-        
-        except:
-            print "Can't save graph"
     plt.show()
     
 
