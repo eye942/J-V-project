@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sat Feb 13 20:21:08 2016
+Created on Tue Feb 16 21:04:28 2016
 
-@author: Eric
+@author: pastpawnclub
 """
 
-# -*- coding: utf-8 -*-
 import pdb
 
 def loadList(directory, file_name):
@@ -53,10 +52,14 @@ class Data(object):
         subst = "/"
         self.forwardDir = re.sub(p, subst, test_str)
         power = [-x[0]*x[1] for x in self.numList]
-        self.maxPower = max(power)
-        self.isc = self.getISC()
-        self.voc = self.getVOC()
-        self.fillFactor = self.getFillFactor()
+        if len(self.numList) > 0:
+            self.maxPower = max(power)
+            self.isc = self.setISC()
+            self.voc = self.setVOC()
+            self.fillFactor = self.setFillFactor()
+            self.DNE = False
+        else:
+            self.DNE = True
         
         
     def setISC(self):
@@ -361,7 +364,7 @@ def unifyHdf5(directory, saveLoc, overwrite = 'y'):
                 print(saveLoc + "/" + key + ' already exists')
                 if overwrite=='y':
                     os.remove(saveLoc + "/" + key)
-                    saveData=h5py.File(saveLoc + "/" + key,'w-')
+                    saveData=h5py.File(saveLoc + "/" + key + ".hdf5",'w-')
                     print('Overwriting')
                 else:
                     print('Leaving old data')
@@ -372,10 +375,11 @@ def unifyHdf5(directory, saveLoc, overwrite = 'y'):
             try:
                 arr = np.array(point.numList)
                 dSetPlot = g.create_dataset("Plot Points", data = arr)
-                g.attrs['isc'] = np.string_(point.isc)
-                g.attrs['voc'] = np.string_(point.voc)
-                g.attrs['Max Power'] = np.string_(point.maxPower)
-                g.attrs['Fill Factor'] = np.string_(point.fillFactor)
+                if point.DNE == False:
+                    g.attrs['isc'] = np.string_(point.isc)
+                    g.attrs['voc'] = np.string_(point.voc)
+                    g.attrs['Max Power'] = np.string_(point.maxPower)
+                    g.attrs['Fill Factor'] = np.string_(point.fillFactor)
             except:
                 pass
             attribs = g.create_group("Attributes")
@@ -532,6 +536,7 @@ def plotDevice( directory = "C:\Users\jye\Desktop", deviceName = "opv_Friday_d1"
     plt.show()
     
 def plotPowerHysteresis( directory = "C:\Users\jye\Desktop", write = 'n'):
+    from dateutil import parser
     import h5py
     import matplotlib.pyplot as plt
     import matplotlib.cm as cm
@@ -542,10 +547,9 @@ def plotPowerHysteresis( directory = "C:\Users\jye\Desktop", write = 'n'):
     # coloring the plot
     x = np.arange(length)
     colors = iter(cm.rainbow(np.linspace(0, 1, length)))
-    '''
+    '''    
     
     hdf5 = h5py.File(directory, 'r')
-    
     # definitions for the axes
     left, width = 0.1, 0.65
     bottom, height = 0.1, 0.65
@@ -554,18 +558,19 @@ def plotPowerHysteresis( directory = "C:\Users\jye\Desktop", write = 'n'):
     
     # start with a rectangular Figure
     fig = plt.figure(1, figsize=(8, 8))
-    
     axScatter = plt.axes(rect_scatter)
     
     for key in hdf5.keys():
         for key2 in hdf5[key].keys():
             try:
-                time = hdf5[key][key2].attrs['Test Time']
                 maxPower = hdf5[key][key2].attrs['Max Power']
+            except: 
+                maxPower = None
+            if maxPower != None:
+                time = hdf5[key][key2].attrs['Test Time']
+                time = parser.parse(time)
                 axScatter.scatter(time, maxPower)
-            except:
-                pdb.set_trace()
-    
+                
     hdf5.close()
     x = directory.rfind('/')
     # label of axes        
