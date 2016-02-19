@@ -535,8 +535,9 @@ def plotDevice( directory = "C:\Users\jye\Desktop", deviceName = "opv_Friday_d1"
             print "Can't save graph"
     plt.show()
     
-def plotPowerHysteresis( directory = "C:\Users\jye\Desktop", write = 'n'):
+def plotPowerHysteresis( directory, saveLoc, write = 'n'):
     from datetime import datetime
+    import os
     import h5py
     import matplotlib.pyplot as plt
     import matplotlib.cm as cm
@@ -551,8 +552,8 @@ def plotPowerHysteresis( directory = "C:\Users\jye\Desktop", write = 'n'):
     
     hdf5 = h5py.File(directory, 'r')
     # definitions for the axes
-    left, width = 0.1, 0.65
-    bottom, height = 0.1, 0.65
+    left, width = 0.2, 0.65
+    bottom, height = 0.2, 0.65
 
     rect_scatter = [left, bottom, width, height]
     
@@ -591,18 +592,219 @@ def plotPowerHysteresis( directory = "C:\Users\jye\Desktop", write = 'n'):
     fig.autofmt_xdate()
     axScatter.set_ylim(0, maximum)
 
-    '''
     #saving
     if write == 'y':
         try:
-            plt.savefig(directory + slash + "figs" + slash + deviceName +'.jpg')
-        
+            if not os.path.exists(saveLoc):
+                os.makedirs(saveLoc)
+            plt.savefig(saveLoc  +'/' +'Pmax v Time_' + directory[(x+1):-4] +'.jpg')
         except:
             print "Can't save graph"
-    '''
-    
     plt.show()
-        
+def plotvocHysteresis( directory, saveLoc, write = 'n'):
+    from datetime import datetime
+    import os
+    import h5py
+    import matplotlib.pyplot as plt
+    import matplotlib.cm as cm
+    import numpy as np
+    
+    '''count = 0
+    length = len(listDir)
+    # coloring the plot
+    x = np.arange(length)
+    colors = iter(cm.rainbow(np.linspace(0, 1, length)))
+    '''    
+    
+    hdf5 = h5py.File(directory, 'r')
+    # definitions for the axes
+    left, width = 0.2, 0.65
+    bottom, height = 0.2, 0.65
+
+    rect_scatter = [left, bottom, width, height]
+    
+    # start with a rectangular Figure
+    fig = plt.figure(1, figsize=(8, 8))
+    axScatter = plt.axes(rect_scatter)
+    plotTime = []
+    plotVoc = []
+    for key in hdf5.keys():
+        for key2 in hdf5[key].keys():
+            try:
+                voc = hdf5[key][key2].attrs['voc']
+            except: 
+                voc = None
+            if voc != None:
+                print "["+key+"]["+key2+"]"
+                time = hdf5[key][key2].attrs['Test Time']
+                time = time.strip()
+                time = time[:6] + "20" + time[6:]
+                time = datetime.strptime(time, '%m/%d/%Y %H:%M')
+                plotTime.append(time)
+                plotVoc.append(float(voc))
+                
+    axScatter.scatter(plotTime, plotVoc)
+                
+    hdf5.close()
+    x = directory.rfind('/')
+    # label of axes        
+    plt.title('VOC vs. Time: ' + directory[(x+1):-4] + '\n', fontsize = 25)
+    plt.xlabel("Date", fontsize = 18)
+    plt.ylabel("VOC (V)", fontsize = 18)
+    plt.ticklabel_format(styl = 'sci', axis = 'y', scilimits = (0,0))
+    maximum = max(plotVoc)
+    # setting of axes
+    axScatter.set_xlim(min(plotTime), max(plotTime))
+    fig.autofmt_xdate()
+    axScatter.set_ylim(min(plotVoc), maximum)
+
+    #saving
+    if write == 'y':
+        try:
+            if not os.path.exists(saveLoc):
+                os.makedirs(saveLoc)
+            plt.savefig(saveLoc  +'/' +'VOC v Time_' + directory[(x+1):-4] +'.jpg')
+        except:
+            print "Can't save graph"
+    plt.show()
+def plotiscHysteresis( directory, saveLoc, write = 'n'):
+    from datetime import datetime
+    import os
+    import h5py
+    import matplotlib.pyplot as plt
+    import matplotlib.cm as cm
+    import numpy as np
+    
+    '''count = 0
+    length = len(listDir)
+    # coloring the plot
+    x = np.arange(length)
+    colors = iter(cm.rainbow(np.linspace(0, 1, length)))
+    '''    
+    
+    hdf5 = h5py.File(directory, 'r')
+    # definitions for the axes
+    left, width = 0.2, 0.65
+    bottom, height = 0.2, 0.65
+
+    rect_scatter = [left, bottom, width, height]
+    
+    # start with a rectangular Figure
+    fig = plt.figure(1, figsize=(8, 8))
+    axScatter = plt.axes(rect_scatter)
+    plotTime = []
+    plotIsc = []
+    for key in hdf5.keys():
+        for key2 in hdf5[key].keys():
+            try:
+                isc = hdf5[key][key2].attrs['isc']
+            except: 
+                isc = None
+            if isc != None:
+                print "["+key+"]["+key2+"]"
+                time = hdf5[key][key2].attrs['Test Time']
+                time = time.strip()
+                time = time[:6] + "20" + time[6:]
+                time = datetime.strptime(time, '%m/%d/%Y %H:%M')
+                plotTime.append(time)
+                plotIsc.append(float(isc))
+                
+    axScatter.scatter(plotTime, plotIsc)
+                
+    hdf5.close()
+    x = directory.rfind('/')
+    # label of axes        
+    plt.title('ISC vs. Time: ' + directory[(x+1):-4] + '\n', fontsize = 25)
+    plt.xlabel("Date", fontsize = 18)
+    plt.ylabel("ISC (mA)", fontsize = 18)
+    plt.ticklabel_format(styl = 'sci', axis = 'y', scilimits = (0,0))
+    maximum = max(plotIsc)
+    # setting of axes
+    axScatter.set_xlim(min(plotTime), max(plotTime))
+    fig.autofmt_xdate()
+    axScatter.set_ylim(min(plotIsc), maximum)
+
+    #saving
+    if write == 'y':
+        try:
+            if not os.path.exists(saveLoc):
+                os.makedirs(saveLoc)
+            plt.savefig(saveLoc  +'/' +'ISC v Time_' + directory[(x+1):-4] +'.jpg')
+        except:
+            print "Can't save graph"
+    plt.show()
+def plotFillFactorHysteresis( directory, saveLoc, write = 'n'):
+    from datetime import datetime
+    import os
+    import h5py
+    import matplotlib.pyplot as plt
+    import matplotlib.cm as cm
+    import numpy as np
+    
+    '''count = 0
+    length = len(listDir)
+    # coloring the plot
+    x = np.arange(length)
+    colors = iter(cm.rainbow(np.linspace(0, 1, length)))
+    '''    
+    
+    hdf5 = h5py.File(directory, 'r')
+    # definitions for the axes
+    left, width = 0.2, 0.65
+    bottom, height = 0.2, 0.65
+
+    rect_scatter = [left, bottom, width, height]
+    
+    # start with a rectangular Figure
+    fig = plt.figure(1, figsize=(8, 8))
+    axScatter = plt.axes(rect_scatter)
+    plotTime = []
+    plotFF = []
+    for key in hdf5.keys():
+        for key2 in hdf5[key].keys():
+            try:
+                ff = hdf5[key][key2].attrs['Fill Factor']
+            except: 
+                ff = None
+            if ff != None:
+                print "["+key+"]["+key2+"]"
+                time = hdf5[key][key2].attrs['Test Time']
+                time = time.strip()
+                time = time[:6] + "20" + time[6:]
+                time = datetime.strptime(time, '%m/%d/%Y %H:%M')
+                plotTime.append(time)
+                plotFF.append(float(ff))
+                
+    axScatter.scatter(plotTime, plotFF)
+                
+    hdf5.close()
+    x = directory.rfind('/')
+    # label of axes        
+    plt.title('Fill Factor vs. Time: ' + directory[(x+1):-4] + '\n', fontsize = 25)
+    plt.xlabel("Date", fontsize = 18)
+    plt.ylabel("Fill Factor", fontsize = 18)
+    plt.ticklabel_format(styl = 'sci', axis = 'y', scilimits = (0,0))
+    maximum = max(plotFF)
+    # setting of axes
+    axScatter.set_xlim(min(plotTime), max(plotTime))
+    fig.autofmt_xdate()
+    axScatter.set_ylim(min(plotFF), maximum)
+
+    #saving
+    if write == 'y':
+        try:
+            if not os.path.exists(saveLoc):
+                os.makedirs(saveLoc)
+            plt.savefig(saveLoc  +'/' +'Fill Factor v Time_' + directory[(x+1):-4] +'.jpg')
+        except:
+            print "Can't save graph"
+    plt.show()
+
+def saveAllFigMerit(directory, saveloc):
+    plotiscHysteresis(directory,saveloc,'y')
+    plotvocHysteresis(directory, saveloc,'y')
+    plotPowerHysteresis(directory,saveloc, 'y')
+    plotFillFactorHysteresis(directory,saveloc,'y')        
 '''
 def plotFigure(fileLoc):
     import numpy as np
