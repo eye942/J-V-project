@@ -54,6 +54,8 @@ class Data(object):
                 self.isc = self.setISC()
                 self.voc = self.setVOC()
                 self.fillFactor = self.setFillFactor()
+                self.operationalVoltage = self.setOperationaVoltage()
+                self.operationalPower = self.setOperationalPower()
                 self.area = self.integrateArea()
                 self.DNE = False
             except:
@@ -102,6 +104,21 @@ class Data(object):
         bigPower = isc*voc
         fillFactor = power/bigPower
         return fillFactor
+        
+               
+    def setOperationaVoltage(self, resistance = 50):
+        rawVoltage = [x[0] for x in self.numList]
+        current  = [-y[1] for y in self.numList]
+        voltageResistor =  [(resistance * i) for i in current]
+        operationalVoltage = [(v - vr) for v, vr in zip(rawVoltage, voltageResistor)]
+        return operationalVoltage      
+        
+    def setOperationalPower(self):
+        
+        current  = [-y[1] for y in self.numList]
+        operationalVoltage = self.operationalVoltage
+        operationalPower = [v * i for v, i in zip(operationalVoltage,current)]
+        return operationalPower
 
     def plot(self, write = 'n'):
         import matplotlib.pyplot as plt
