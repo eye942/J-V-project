@@ -54,6 +54,7 @@ class Data(object):
                 self.isc = self.setISC()
                 self.voc = self.setVOC()
                 self.fillFactor = self.setFillFactor()
+                self.area = self.integrateArea()
                 self.DNE = False
             except:
                 self.DNE = True
@@ -246,7 +247,24 @@ class Data(object):
                     dictList.append(temp)
                 self.parsedList.append(["Sweep Points", dictList] )
 
-
+    def integrateArea(self):
+        import h5py    
+        
+        plotpoints = self.numList
+        
+        plotpoints = [[y[0], -y[1]] for y in plotpoints]
+        newplotpoints = []
+        for y in plotpoints:
+            if y[0] >= 0 and y[1] >= 0:
+                newplotpoints.append(y)
+        
+        riemannsum = 0
+        for e in range(len(newplotpoints)-1):
+            dvoltage = abs(newplotpoints[e][0]- newplotpoints[e+1][0])
+            current = newplotpoints[e][1]
+            riemannsum += current * dvoltage
+        
+        return riemannsum
 
     def createHDF5(self, saveLoc = 'C:/Users/Eric/Desktop/J-V/Test/Hdf5', overwrite = "y"):
         #Author: Yash Pershad
@@ -1127,6 +1145,29 @@ def findMaxPower(fileloc):
     hdf5["Data"].attrs['Max Power'] = maxPower
     print(maxPower)
     hdf5.close()
+    
+def integrateArea(fileloc, individual='Y', time=None, date=None):
+    import h5py    
+    
+    hdf5 = h5py.File(fileloc)
+    if individual == 'Y':
+        plotpoints = hdf5['Data']['Plot Points'][:]
+    else:
+        plotpoints = hdf5[date][time]['Plot Points'][:]
+    
+    plotpoints = [[y[0], -y[1]] for y in plotpoints]
+    newplotpoints = []
+    for y in plotpoints:
+        if y[0] >= 0 and y[1] >= 0:
+            newplotpoints.append(y)
+    
+    riemannsum = 0
+    for e in range(len(newplotpoints)-1):
+        dvoltage = abs(newplotpoints[e][0]- newplotpoints[e+1][0])
+        current = newplotpoints[e][1]
+        riemannsum += current * dvoltage
+    
+    return riemannsum
 
 #Function for convenient testing
 def main(close = 'y'):
