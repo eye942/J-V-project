@@ -49,7 +49,8 @@ class Data(object):
         subst = "/"
         self.forwardDir = re.sub(p, subst, test_str)
         power = [-x[0]*x[1] for x in self.numList]
-        
+        self.operationalVoltage = self.setOperationaVoltage()
+    
         
         if len(self.numList) > 0:
             try:
@@ -62,10 +63,8 @@ class Data(object):
                 self.parsedList.append(["isc", self.isc])
                 self.parsedList.append(["voc", self.voc])
                 self.parsedList.append(["Fill Factor", self.fillFactor])
-                self.parsedList.append(['Op Voltage', 
-                                        self.operationalVoltage])
-                self.parsedList.append(['Op Power', 
-                                        self.setOperationalPower()])
+                self.numList.append(self.operationalVoltage)
+                self.numList.append(self.setOperationalPower())
                 self.DNE = False
             except ValueError:
                 self.DNE = True
